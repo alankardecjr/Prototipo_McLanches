@@ -1,128 +1,120 @@
 import tkinter as tk
 from tkinter import messagebox
 import sqlite3
-import database 
+import database  # Utiliza o banco de dados relacional refatorado
 
 class JanelaCadastroClientes(tk.Toplevel):
     def __init__(self, master, dados_cliente=None, callback_pedido=None):
         super().__init__(master)
-        self.title("McLanches Delivery")
-        self.geometry("460x720") 
+        self.title("***** Sistema JAD - McLanches Delivery *****")
+        
+        # AJUSTE: Tamanho reduzido para a janela ficar mais compacta e elegante
+        self.geometry("500x550") 
         self.resizable(False, False)
         
-        # Paleta de Cores
-        self.bg_fundo = "#f4f5f9"
+        # Paleta de cores padronizada com a Main
+        self.bg_fundo = "#f4f6f9"
         self.bg_card = "#ffffff"
-        self.cor_borda = "#d1d5db"
-        self.cor_texto = "#1f2937"
-        self.cor_lbl = "#4b5563"
-        self.cor_btn_1 = "#4b5563"   
-        self.cor_btn_2 = "#374151"   
-        self.cor_btn_sair = "#1f2937" 
-        self.cor_hover = "#3b82f6"   # Azul para destaque de borda
-        self.cor_hover_btn = "#6b7280" # Cinza claro para hover de botão
-
+        self.cor_borda = "#2c3e50"  # Borda sólida escura para as caixas
+        self.cor_texto = "#2c3e50"
+        self.cor_lbl = "#2c3e50"
+        
         self.configure(bg=self.bg_fundo)
         self.cliente_id = None
         self.callback_pedido = callback_pedido 
 
         self.criar_widgets()
         
+        # Se receber dados da Main (Edição), preenche os campos automaticamente
         if dados_cliente:
             self.preencher_dados(dados_cliente)            
      
+        # Prende o foco nesta janela até que ela seja fechada
         self.grab_set()
 
     def criar_widgets(self):
-        main_frame = tk.Frame(self, bg=self.bg_fundo, padx=25, pady=20)
-        main_frame.pack(fill="both", expand=True)
+        # -------------------------------------------------------------
+        # PAINEL FORMULÁRIO (LabelFrame com bordas bem marcadas igual à Main)
+        # -------------------------------------------------------------
+        main_frame = tk.LabelFrame(self, text=" Gerenciamento de Clientes ", bg=self.bg_fundo,
+                                   font=("Arial", 11, "bold"), bd=2, relief="solid", padx=20, pady=5)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # --- FUNÇÕES DE EFEITO (HOVER) ---
-        def ao_entrar_botao(e, cor_destaque):
-            e.widget.config(bg=cor_destaque)
-
-        def ao_sair_botao(e, cor_original):
-            e.widget.config(bg=cor_original)
-
+        # Função auxiliar simples para criar os campos de entrada padronizados
         def criar_campo(parent, texto, row, col=0, colspan=2, width=None):
             tk.Label(parent, text=texto, bg=self.bg_fundo, fg=self.cor_lbl, 
-                     font=("Segoe UI", 9, "bold")).grid(row=row, column=col, sticky="w", pady=(12, 2))
+                     font=("Arial", 9, "bold")).grid(row=row, column=col, sticky="w", pady=(5, 1))
             
-            ent = tk.Entry(parent, font=("Segoe UI", 11), bg=self.bg_card, fg=self.cor_texto,
-                            relief="flat", highlightbackground=self.cor_borda, highlightthickness=1)
+            # Entry com borda sólida nativa para melhor legibilidade
+            ent = tk.Entry(parent, font=("Arial", 11), bg=self.bg_card, fg=self.cor_texto,
+                           relief="solid", bd=1)
             
-            if width: ent.config(width=width)
-            ent.grid(row=row+1, column=col, columnspan=colspan, sticky="ew", ipady=5, padx=(0, 5) if colspan==1 else 0)
+            if width: 
+                ent.config(width=width)
             
-            # --- DESTAQUE NO CAMPO DE TEXTO ---
-            # Muda para azul ao entrar ou focar, volta ao cinza ao sair
-            ent.bind("<Enter>", lambda e: e.widget.config(highlightbackground="#9ca3af") if e.widget != self.focus_get() else None)
-            ent.bind("<Leave>", lambda e: e.widget.config(highlightbackground=self.cor_borda) if e.widget != self.focus_get() else None)
-            ent.bind("<FocusIn>", lambda e: e.widget.config(highlightbackground=self.cor_hover, highlightthickness=2))
-            ent.bind("<FocusOut>", lambda e: e.widget.config(highlightbackground=self.cor_borda, highlightthickness=1))
-            
+            ent.grid(row=row+1, column=col, columnspan=colspan, sticky="ew", ipady=3, padx=(0, 5) if colspan==1 else 0)
             return ent
 
-        # --- HEADER ---
-        lbl_header = tk.Label(main_frame, text="Gerenciar Cliente", bg=self.bg_fundo, 
-                               fg=self.cor_texto, font=("Segoe UI", 16, "bold"))
-        lbl_header.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
-
-        # --- CAMPOS ---
+        # --- CAMPOS DO FORMULÁRIO (Espaçamentos internos reduzidos) ---
         self.ent_nome = criar_campo(main_frame, "NOME COMPLETO", 1)
         self.ent_tel = criar_campo(main_frame, "TELEFONE", 3)
         self.ent_logra = criar_campo(main_frame, "LOGRADOURO (Rua/Av)", 5, col=0, colspan=1)
-        self.ent_num = criar_campo(main_frame, "Nº", 5, col=1, colspan=1, width=8)
+        self.ent_num = criar_campo(main_frame, "Nº", 5, col=1, colspan=1, width=5)
         self.ent_bairro = criar_campo(main_frame, "BAIRRO", 7)
         self.ent_ref = criar_campo(main_frame, "PONTO DE REFERÊNCIA", 9)
-        self.txt_obs = criar_campo(main_frame, "OBSERVAÇÕES", 11)
+        self.txt_obs = criar_campo(main_frame, "OBSERVAÇÕES DO ENDEREÇO", 11)
 
-        # --- STATUS ---
+        # --- STATUS DO CLIENTE ---
         tk.Label(main_frame, text="STATUS DO CLIENTE", bg=self.bg_fundo, fg=self.cor_lbl, 
-                 font=("Segoe UI", 9, "bold")).grid(row=13, column=0, sticky="w", pady=(15, 2))
+                 font=("Arial", 9, "bold")).grid(row=13, column=0, sticky="w", pady=(8, 1))
         
         self.var_status = tk.StringVar(value="Ativo")
-        self.opt_status = tk.OptionMenu(main_frame, self.var_status, "Ativo", "Inativo", "Vip", "PDC/IDOSO")
-        self.opt_status.config(bg=self.bg_card, fg=self.cor_texto, relief="flat", highlightthickness=1, 
-                                highlightbackground=self.cor_borda, font=("Segoe UI", 10), cursor="hand2")
-        self.opt_status.grid(row=14, column=0, columnspan=2, sticky="ew")
+        self.opt_status = tk.OptionMenu(main_frame, self.var_status, "Ativo", "Inativo", "Vip", "PCD/Idoso")
+        self.opt_status.config(bg=self.bg_card, fg=self.cor_texto, relief="solid", bd=1, 
+                               font=("Arial", 10), cursor="hand2", highlightthickness=0)
+        self.opt_status.grid(row=14, column=0, columnspan=2, sticky="ew", ipady=1)
 
-        # --- BOTÕES ---
+        # -------------------------------------------------------------
+        # AJUSTE: PAINEL DE BOTÕES TOTALMENTE ALINHADOS LADO A LADO
+        # -------------------------------------------------------------
         btn_frame = tk.Frame(main_frame, bg=self.bg_fundo)
-        btn_frame.grid(row=15, column=0, columnspan=2, pady=(30, 5))
+        btn_frame.grid(row=15, column=0, columnspan=2, pady=(15, 5), sticky="ew")
 
-        # Botão SALVAR
-        self.btn_salvar = tk.Button(btn_frame, text="SALVAR", bg=self.cor_btn_1, fg="white", 
-                                    font=("Segoe UI", 9, "bold"), width=18, relief="flat", cursor="hand2", 
-                                    command=self.salvar_e_sair)
-        self.btn_salvar.pack(side="left", padx=5, ipady=8)
-        self.btn_salvar.bind("<Enter>", lambda e: ao_entrar_botao(e, self.cor_hover_btn))
-        self.btn_salvar.bind("<Leave>", lambda e: ao_sair_botao(e, self.cor_btn_1))
+        # Configura as 3 colunas do frame de botões para terem tamanhos iguais
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
+        btn_frame.grid_columnconfigure(2, weight=1)
 
-        # Botão PEDIR
-        self.btn_pedido = tk.Button(btn_frame, text="PEDIR", bg=self.cor_btn_2, fg="white", 
-                                    font=("Segoe UI", 9, "bold"), width=18, relief="flat", cursor="hand2", 
-                                    command=self.salvar_e_pedir)
-        self.btn_pedido.pack(side="left", padx=5, ipady=8)
-        self.btn_pedido.bind("<Enter>", lambda e: ao_entrar_botao(e, "#4b5563")) # Destaque mais claro
-        self.btn_pedido.bind("<Leave>", lambda e: ao_sair_botao(e, self.cor_btn_2))
+        btn_style = {
+            "font": ("Arial", 9, "bold"), "relief": "solid", "bd": 1, "cursor": "hand2"
+        }
 
-        # Botão FECHAR
-        self.btn_sair_janela = tk.Button(main_frame, text="FECHAR", bg=self.cor_btn_sair, fg="white", 
-                                        font=("Segoe UI", 9, "bold"), width=38, relief="flat", cursor="hand2", 
-                                        command=self.fechar_limpar)
-        self.btn_sair_janela.grid(row=16, column=0, columnspan=2, pady=5, ipady=5)
-        self.btn_sair_janela.bind("<Enter>", lambda e: ao_entrar_botao(e, "#374151"))
-        self.btn_sair_janela.bind("<Leave>", lambda e: ao_sair_botao(e, self.cor_btn_sair))
+        # Botão Salvar / Atualizar (Coluna 0)
+        self.btn_salvar = tk.Button(btn_frame, text="💾 SALVAR", bg="#ffffff", fg="#27ae60", 
+                                    command=self.salvar_e_sair, **btn_style)
+        self.btn_salvar.grid(row=0, column=0, padx=4, ipady=6, sticky="ew")
 
+        # Botão Pedir (Coluna 1)
+        self.btn_pedido = tk.Button(btn_frame, text="🛒 PEDIR", bg="#ffffff", fg="#2980b9", 
+                                    command=self.salvar_e_pedir, **btn_style)
+        self.btn_pedido.grid(row=0, column=1, padx=4, ipady=6, sticky="ew")
+
+        # Botão Fechar Janela (Coluna 2)
+        self.btn_sair_janela = tk.Button(btn_frame, text="🚪 FECHAR", bg="#ffffff", fg="#7f8c8d", 
+                                        command=self.fechar_limpar, **btn_style)
+        self.btn_sair_janela.grid(row=0, column=2, padx=4, ipady=6, sticky="ew")
+
+        # Configuração de pesos das colunas do formulário
         main_frame.columnconfigure(0, weight=4)
         main_frame.columnconfigure(1, weight=1)
 
     def fechar_limpar(self):
+        """Libera o foco do sistema e fecha a janela"""
         self.grab_release()
         self.destroy()
 
     def coletar_dados(self):
+        """Coleta as strings limpas digitadas nos campos"""
         return {
             "nome": self.ent_nome.get().strip(),
             "tel": self.ent_tel.get().strip(),
@@ -135,9 +127,10 @@ class JanelaCadastroClientes(tk.Toplevel):
         }
 
     def validar_e_salvar(self):
+        """Valida campos obrigatórios e salva as alterações no SQLite"""
         d = self.coletar_dados()
         if not d["nome"] or not d["tel"] or not d["logra"]:
-            messagebox.showwarning("Atenção", "Preencha Nome, Telefone e Logradouro.")
+            messagebox.showwarning("Atenção", "Os campos Nome, Telefone e Logradouro são obrigatórios.")
             return False
         
         try:
@@ -149,33 +142,44 @@ class JanelaCadastroClientes(tk.Toplevel):
                                        d["bairro"], d["ref"], d["obs"], d["status"])
             return True
         except sqlite3.IntegrityError:
-            messagebox.showerror("Erro", "Telefone já cadastrado.")
+            messagebox.showerror("Erro", "Este número de telefone já está cadastrado para outro cliente.")
             return False
 
     def salvar_e_sair(self):
+        """Salva o cliente e apenas fecha a janela retornando para a Main"""
         if self.validar_e_salvar():
             self.fechar_limpar()
 
     def salvar_e_pedir(self):
+        """Salva/Atualiza o cliente e dispara o callback abrindo a tela de PDV já com o nome dele"""
         d = self.coletar_dados()
         if self.validar_e_salvar():
+            self.fechar_limpar()  # Fecha a janela atual primeiro
             if self.callback_pedido:
-                self.callback_pedido(d["nome"], d["tel"])
-            self.fechar_limpar()
+                # Dispara a abertura do PDV levando o nome como parâmetro inicial de busca automática
+                self.callback_pedido(d["nome"])
 
     def preencher_dados(self, dados):
+        """Preenche o formulário ao abrir em modo de edição (Duplo clique na Main)"""
         self.cliente_id = dados[0]
         self.ent_nome.insert(0, str(dados[1]))
         self.ent_tel.insert(0, str(dados[2]))
-        self.ent_logra.insert(0, str(dados[3]))
-        self.ent_num.insert(0, str(dados[4]))
-        self.ent_bairro.insert(0, str(dados[5]))
-        self.ent_ref.insert(0, str(dados[6]))
-        self.txt_obs.insert(0, str(dados[7]))
-        self.var_status.set(dados[8])
-        self.btn_salvar.config(text="ATUALIZAR DADOS")
+        
+        if len(dados) > 3:
+            try:
+                self.ent_logra.insert(0, str(dados[3]))
+                self.ent_num.insert(0, str(dados[4]))
+                self.ent_bairro.insert(0, str(dados[5]))
+                self.ent_ref.insert(0, str(dados[6]))
+                self.txt_obs.insert(0, str(dados[7]))
+                self.var_status.set(dados[8])
+            except IndexError:
+                pass
+                
+        self.btn_salvar.config(text="🔄 ATUALIZAR")
 
 if __name__ == "__main__":
+    import tkinter as tk
     root = tk.Tk()
     root.withdraw() 
     JanelaCadastroClientes(root)

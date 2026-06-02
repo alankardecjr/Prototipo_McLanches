@@ -1,159 +1,168 @@
 import tkinter as tk
 from tkinter import messagebox
 import sqlite3
-import database 
+import database  # Utiliza o banco de dados relacional refatorado
 
 class JanelaCadastroProdutos(tk.Toplevel):
     def __init__(self, master, dados_produto=None):
         super().__init__(master)
-        self.title("McLanches Delivery")
-        self.geometry("460x500")  # Ajustado para manter proporção
+        self.title("***** Sistema JAD - McLanches Delivery *****")
+        
+        # AJUSTE: Tamanho reduzido para manter o mesmo padrão compacto da janela de clientes
+        self.geometry("500x420") 
         self.resizable(False, False)
         
-        # Paleta de Cores Padronizada
-        self.bg_fundo = "#f4f5f9"
+        # Paleta de Cores unificada com a Main e Cadastro de Clientes
+        self.bg_fundo = "#f4f6f9"
         self.bg_card = "#ffffff"
-        self.cor_borda = "#d1d5db"
-        self.cor_texto = "#1f2937"
-        self.cor_lbl = "#4b5563"
-        self.cor_btn_1 = "#4b5563"   
-        self.cor_btn_sair = "#1f2937" 
-        self.cor_hover = "#3b82f6"   
-        self.cor_hover_btn = "#6b7280"
+        self.cor_borda = "#2c3e50"  # Borda sólida escura
+        self.cor_texto = "#2c3e50"
+        self.cor_lbl = "#2c3e50"
 
         self.configure(bg=self.bg_fundo)
         self.produto_id = None
 
         self.criar_widgets()
 
+        # Se receber dados do Main (Edição ao duplo clique), preenche os inputs automaticamente
         if dados_produto:
             self.preencher_dados(dados_produto)
             
+        # Prende o foco do sistema nesta janela de diálogo até ser fechada
         self.grab_set()
 
     def criar_widgets(self):
-        main_frame = tk.Frame(self, bg=self.bg_fundo, padx=25, pady=20)
-        main_frame.pack(fill="both", expand=True)
+        # -------------------------------------------------------------
+        # PAINEL FORMULÁRIO (LabelFrame com bordas bem marcadas)
+        # -------------------------------------------------------------
+        main_frame = tk.LabelFrame(self, text=" Gerenciamento de Produtos ", bg=self.bg_fundo,
+                                   font=("Arial", 11, "bold"), bd=2, relief="solid", padx=20, pady=5)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        # --- FUNÇÕES DE EFEITO (HOVER) ---
-        def ao_entrar_botao(e, cor_destaque):
-            e.widget.config(bg=cor_destaque)
-
-        def ao_sair_botao(e, cor_original):
-            e.widget.config(bg=cor_original)
-
+        # Função interna simples para criar campos de entrada textuais padronizados
         def criar_campo(parent, texto, row, col=0, colspan=2, width=None):
             tk.Label(parent, text=texto, bg=self.bg_fundo, fg=self.cor_lbl, 
-                     font=("Segoe UI", 9, "bold")).grid(row=row, column=col, sticky="w", pady=(12, 2))
+                     font=("Arial", 9, "bold")).grid(row=row, column=col, sticky="w", pady=(5, 1))
             
-            ent = tk.Entry(parent, font=("Segoe UI", 11), bg=self.bg_card, fg=self.cor_texto,
-                            relief="flat", highlightbackground=self.cor_borda, highlightthickness=1)
+            # Entry com borda sólida nativa para fácil compreensão do professor
+            ent = tk.Entry(parent, font=("Arial", 11), bg=self.bg_card, fg=self.cor_texto,
+                           relief="solid", bd=1)
             
-            if width: ent.config(width=width)
-            ent.grid(row=row+1, column=col, columnspan=colspan, sticky="ew", ipady=5, padx=(0, 5) if colspan==1 else 0)
-            
-            ent.bind("<Enter>", lambda e: e.widget.config(highlightbackground="#9ca3af") if e.widget != self.focus_get() else None)
-            ent.bind("<Leave>", lambda e: e.widget.config(highlightbackground=self.cor_borda) if e.widget != self.focus_get() else None)
-            ent.bind("<FocusIn>", lambda e: e.widget.config(highlightbackground=self.cor_hover, highlightthickness=2))
-            ent.bind("<FocusOut>", lambda e: e.widget.config(highlightbackground=self.cor_borda, highlightthickness=1))
+            if width: 
+                ent.config(width=width)
+                
+            ent.grid(row=row+1, column=col, columnspan=colspan, sticky="ew", ipady=3, padx=(0, 5) if colspan==1 else 0)
             return ent
 
-        # --- HEADER ---
-        lbl_header = tk.Label(main_frame, text="Gerenciar Produtos", bg=self.bg_fundo, 
-                               fg=self.cor_texto, font=("Segoe UI", 16, "bold"))
-        lbl_header.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
-
-        # --- CAMPOS ---
+        # --- CAMPOS DO FORMULÁRIO (Otimizados para a redução de tamanho) ---
         self.ent_produto = criar_campo(main_frame, "NOME DO PRODUTO / ITEM", 1)
 
-        # Categoria
+        # Campo do tipo Categoria (Comida, Bebida, etc)
         tk.Label(main_frame, text="CATEGORIA", bg=self.bg_fundo, fg=self.cor_lbl, 
-                 font=("Segoe UI", 9, "bold")).grid(row=3, column=0, sticky="w", pady=(12, 2))
+                 font=("Arial", 9, "bold")).grid(row=3, column=0, sticky="w", pady=(5, 1))
         
-        self.var_categoria = tk.StringVar(value="Lanche")
-        self.opt_categoria = tk.OptionMenu(main_frame, self.var_categoria, "Lanche", "Bebida", "Sobremesa")
-        self.opt_categoria.config(bg=self.bg_card, fg=self.cor_texto, relief="flat", highlightthickness=1, 
-                                   highlightbackground=self.cor_borda, font=("Segoe UI", 10), cursor="hand2")
-        self.opt_categoria.grid(row=4, column=0, columnspan=2, sticky="ew")
+        self.var_categoria = tk.StringVar(value="Comida")
+        self.opt_categoria = tk.OptionMenu(main_frame, self.var_categoria, "Comida", "Bebida")
+        self.opt_categoria.config(bg=self.bg_card, fg=self.cor_texto, relief="solid", bd=1, 
+                                   font=("Arial", 10), cursor="hand2", highlightthickness=0)
+        self.opt_categoria.grid(row=4, column=0, columnspan=2, sticky="ew", ipady=1)
 
-        # Preço e Quantidade em Estoque
-        self.ent_preco = criar_campo(main_frame, "PREÇO (R$)", 5, col=0, colspan=1)
+        # Preço e Quantidade lado a lado
+        self.ent_preco = criar_campo(main_frame, "PREÇO REAL (R$)", 5, col=0, colspan=1)
         self.ent_qtd = criar_campo(main_frame, "QTD EM ESTOQUE", 5, col=1, colspan=1)
 
-        # Status
+        # Campo de Status do Item
         tk.Label(main_frame, text="STATUS DO ESTOQUE", bg=self.bg_fundo, fg=self.cor_lbl, 
-                 font=("Segoe UI", 9, "bold")).grid(row=7, column=0, sticky="w", pady=(15, 2))
+                 font=("Arial", 9, "bold")).grid(row=7, column=0, sticky="w", pady=(5, 1))
         
-        self.var_status = tk.StringVar(value="Estoque")
-        self.opt_status = tk.OptionMenu(main_frame, self.var_status, "Estoque", "Esgotado")
-        self.opt_status.config(bg=self.bg_card, fg=self.cor_texto, relief="flat", highlightthickness=1, 
-                                highlightbackground=self.cor_borda, font=("Segoe UI", 10), cursor="hand2")
-        self.opt_status.grid(row=8, column=0, columnspan=2, sticky="ew")
+        self.var_status = tk.StringVar(value="em estoque")
+        self.opt_status = tk.OptionMenu(main_frame, self.var_status, "em estoque", "sem estoque")
+        self.opt_status.config(bg=self.bg_card, fg=self.cor_texto, relief="solid", bd=1, 
+                                font=("Arial", 10), cursor="hand2", highlightthickness=0)
+        self.opt_status.grid(row=8, column=0, columnspan=2, sticky="ew", ipady=1)
 
-        # --- BOTÕES ---
+        # -------------------------------------------------------------
+        # AJUSTE: PAINEL DE BOTÕES ALINHADOS LADO A LADO (Esquema Cad Cliente)
+        # -------------------------------------------------------------
         btn_frame = tk.Frame(main_frame, bg=self.bg_fundo)
-        btn_frame.grid(row=9, column=0, columnspan=2, pady=(40, 5))
+        btn_frame.grid(row=9, column=0, columnspan=2, pady=(15, 5), sticky="ew")
 
-        self.btn_salvar = tk.Button(btn_frame, text="SALVAR", bg=self.cor_btn_1, fg="white", 
-                                    font=("Segoe UI", 9, "bold"), width=38, relief="flat", cursor="hand2", 
-                                    command=self.salvar)
-        self.btn_salvar.pack(ipady=8)
-        self.btn_salvar.bind("<Enter>", lambda e: ao_entrar_botao(e, self.cor_hover_btn))
-        self.btn_salvar.bind("<Leave>", lambda e: ao_sair_botao(e, self.cor_btn_1))
+        # Configura as colunas do sub-frame de botões para preencherem igualmente o espaço
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
 
-        self.btn_fechar = tk.Button(main_frame, text="FECHAR", bg=self.cor_btn_sair, fg="white", 
-                                    font=("Segoe UI", 9, "bold"), width=38, relief="flat", cursor="hand2", 
-                                    command=self.destroy)
-        self.btn_fechar.grid(row=10, column=0, columnspan=2, pady=5, ipady=5)
-        self.btn_fechar.bind("<Enter>", lambda e: ao_entrar_botao(e, "#374151"))
-        self.btn_fechar.bind("<Leave>", lambda e: ao_sair_botao(e, self.cor_btn_sair))
+        btn_style = {
+            "font": ("Arial", 9, "bold"), "relief": "solid", "bd": 1, "cursor": "hand2"
+        }
 
+        # Botão Salvar (Lado Esquerdo)
+        self.btn_salvar = tk.Button(btn_frame, text="💾 SALVAR", bg="#ffffff", fg="#27ae60", 
+                                    command=self.salvar, **btn_style)
+        self.btn_salvar.grid(row=0, column=0, padx=5, ipady=6, sticky="ew")
+
+        # Botão Fechar Janela (Lado Direito)
+        self.btn_fechar = tk.Button(btn_frame, text="🚪 FECHAR", bg="#ffffff", fg="#7f8c8d", 
+                                    command=self.destroy, **btn_style)
+        self.btn_fechar.grid(row=0, column=1, padx=5, ipady=6, sticky="ew")
+
+        # Equaliza o peso das colunas internas para o Preço e Estoque ficarem simétricos
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
 
     def coletar_dados(self):
+        """Captura e sanitiza os inputs digitados na janela"""
+        # Limpa espaços e ajusta vírgulas para ponto no preço float
+        preco_limpo = self.ent_preco.get().replace(',', '.').strip()
         return {
             "produto": self.ent_produto.get().strip(),
-            "preco": self.ent_preco.get().replace(',', '.').strip(),
+            "preco": preco_limpo,
             "quantidade": self.ent_qtd.get().strip(),
             "categoria": self.var_categoria.get(),
             "status": self.var_status.get()
         }
 
     def salvar(self):
+        """Valida os tipos e persiste os dados do produto no SQLite"""
         d = self.coletar_dados()
         if not d["produto"] or not d["preco"]:
-            messagebox.showwarning("Atenção", "Nome e Preço são obrigatórios.")
+            messagebox.showwarning("Atenção", "O Nome do produto e o Preço são campos obrigatórios.")
             return
 
         try:
+            # Tenta converter os dados para garantir integridade numérica do BD
             preco_float = float(d["preco"])
             qtd_int = int(d["quantidade"]) if d["quantidade"] else 0
             
             if self.produto_id:
                 database.atualizar_item(self.produto_id, d["produto"], preco_float, 
                                        qtd_int, d["categoria"], d["status"])
-                messagebox.showinfo("Sucesso", "Produto atualizado!")
+                messagebox.showinfo("Sucesso", "Produto atualizado com sucesso!")
             else:
                 database.salvar_item(d["produto"], preco_float, qtd_int, 
                                     d["categoria"], d["status"])
-                messagebox.showinfo("Sucesso", "Produto cadastrado!")
+                messagebox.showinfo("Sucesso", "Novo produto cadastrado no cardápio!")
             
-            self.destroy()
+            self.destroy() # Fecha a janela após salvar para atualizar a grid principal
 
         except ValueError:
-            messagebox.showerror("Erro", "Use números válidos para Preço e Qtd.")
+            messagebox.showerror("Erro de Tipo", "Digite valores numéricos válidos.\nEx: Preço: 24.90 | Estoque: 50")
         except Exception as e:
-            messagebox.showerror("Erro", f"Erro: {e}")
+            messagebox.showerror("Erro", f"Não foi possível processar a operação: {e}")
 
     def preencher_dados(self, dados):
+        """Injeta as variáveis caso a janela seja aberta a partir de um duplo clique no Main"""
         self.produto_id = dados[0]
         self.ent_produto.insert(0, dados[1])
-        self.ent_preco.insert(0, str(dados[2]))
+        
+        # Limpa o texto "R$" caso venha formatado da grid do Main
+        preco_limpo = str(dados[2]).replace("R$", "").strip()
+        self.ent_preco.insert(0, preco_limpo)
+        
         self.ent_qtd.insert(0, str(dados[3]))
         self.var_categoria.set(dados[4])
         self.var_status.set(dados[5])
-        self.btn_salvar.config(text="ATUALIZAR DADOS")
+        
+        self.btn_salvar.config(text="🔄 ATUALIZAR")
 
 if __name__ == "__main__":
     root = tk.Tk()
